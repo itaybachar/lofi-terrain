@@ -4,19 +4,15 @@
 <head>
     <meta charset="utf-8">
     <title>Lofi Mountains!</title>
-    <!-- <script src='http://joeiddon.github.io/perlin/perlin.js'></script> -->
     <script src="noise.js"></script>
     <script src="lofi.js"></script>
 
-    <style>
-        canvas {
-            /* border: 2px solid black; */
-        }
-    </style>
-    <input oninput="updateAngle(this)" type="range" min="0" max="1" step="0.01">
+    <link rel="stylesheet" href="lofi.css">
 </head>
 
-<body onload="initCanvas()">
+<body onload="initCanvas()" style="overflow: hidden;">
+    <div id="background" class="background moving"></div>
+    <!-- <img id="background" class="background" src="../res/background.png"> -->
     <canvas id="canvas" width="400" height="400"></canvas>
 </body>
 

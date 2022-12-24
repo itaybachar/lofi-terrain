@@ -1,0 +1,41 @@
+head,
+body {
+    height: 100%;
+    margin: 0px;
+}
+
+canvas {
+    z-index: 1;
+    position: relative;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+}
+
+.background {
+    z-index: 1;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-image: url('../res/background-cont-stars.jpg');
+    animation: panning 100s infinite linear;
+    animation-play-state: paused;
+}
+
+.background.moving {
+    animation-play-state: running;
+}
+
+@keyframes panning {
+    0% {
+        background-position-y: 100%;
+    }
+
+    100% {
+        background-position-y: 100vh;
+    }
+}

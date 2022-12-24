@@ -3,45 +3,53 @@ let ctx = undefined;
 let frameRefresh = undefined;
 const PI = Math.PI;
 
-let width = 100;
-let height = 50;
+let width = 200;
+let height = 70;
 let rows = 0, cols = 0;
 
 const K1 = 300;
-const K2 = 10;
+const K2 = 2;
 
-let flying = 0;
+let flying = 0, flyingDelta = 0.03;
+let horizontalOffset = 0;
 
-let terrainAngle = 0.7;
+let terrainAngle = 0.4;
 
 let translateX = 0, translateY = 0;
 
 function initCanvas()
 {
     canvas = document.getElementById('canvas');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     if (!canvas.getContext)
         return;
 
-    translateX = canvas.width / 2; //K1 * (width / 2);
+    translateX = canvas.width / 2;
     translateY = canvas.height * 1.2;
     ctx = canvas.getContext('2d');
     var grad = ctx.createLinearGradient(canvas.width / 2, canvas.height, canvas.width / 2, canvas.height / 3);
-    grad.addColorStop(0, "#ffbf15");
+    grad.addColorStop(0.3, "#ffbf15");
     grad.addColorStop(0.5, "#C91853")
     grad.addColorStop(1, "#301D7D");
     ctx.strokeStyle = grad;
 
 
-    frameRefresh = setInterval(drawTerrain, 50)
-    // drawTerrain();
+    if (!frameRefresh)
+        frameRefresh = setInterval(drawTerrain, 50)
 }
 
 function drawTerrain()
 {
-    flying += 0.03;
+    if (frameRefresh)
+        flying += 0.03;
     clearFrame();
-    // ctx.strokeStyle = 'rgba(255,255,255,1)'
-    ctx.fillStyle = 'rgba(255,255,255,1)'
+    // ctx.fillStyle = 'rgba(255,255,255,0.3)'
+    ctx.fillStyle = 'rgba(0,0,0,0.7)'
+
+    let heightRange = 5;
+    let maxHeight = 0;
+    let minHeight = 14;
 
     //create grid
     ctx.beginPath();
@@ -49,35 +57,62 @@ function drawTerrain()
     let yoff = flying;
     for (let y = 0; y < height; y++)
     {
-        let xoff = 0;
+        let xoff = horizontalOffset;
         for (let x = 0; x < width; x++)
         {
-            let point0 = { x: -width / 2 + x, y: y, z: 0 };
-            let point1 = { x: -width / 2 + x + 1, y: y, z: 0 };
-            let point2 = { x: -width / 2 + x, y: y - 1, z: 0 };
+            let point0 = { x: -width * 0.5 + x, y: y, z: map(noise(xoff, yoff), minHeight, maxHeight) };
+            let point1 = { x: -width * 0.5 + x + 1, y: y, z: map(noise(xoff + 0.03, yoff), minHeight, maxHeight) };
+            let point2 = { x: -width * 0.5 + x, y: y - 1, z: map(noise(xoff, yoff - 0.05), minHeight, maxHeight) };
+            let point3 = { x: -width * 0.5 + x + 1, y: y - 1, z: map(noise(xoff + 0.03, yoff - 0.05), minHeight, maxHeight) };
 
             point0 = rotatePoint(point0, terrainAngle);
             point1 = rotatePoint(point1, terrainAngle);
             point2 = rotatePoint(point2, terrainAngle);
+            point3 = rotatePoint(point3, terrainAngle);
 
-            point0 = { x: K1 * point0.x / point0.z, y: K1 * point0.y / point0.z, z: point0.z };
-            point1 = { x: K1 * point1.x / point1.z, y: K1 * point1.y / point1.z, z: point1.z };
-            point2 = { x: K1 * point2.x / point2.z, y: K1 * point2.y / point2.z, z: point2.z };
+            let p0oz = 1 / point0.z;
+            let p1oz = 1 / point1.z;
+            let p2oz = 1 / point2.z;
+            let p3oz = 1 / point3.z;
 
+            point0 = { x: K1 * point0.x / point0.z, y: K1 * point0.y * p0oz, z: point0.z };
+            point1 = { x: K1 * point1.x / point1.z, y: K1 * point1.y * p1oz, z: point1.z };
+            point2 = { x: K1 * point2.x / point2.z, y: K1 * point2.y * p2oz, z: point2.z };
+            point3 = { x: K1 * point3.x / point3.z, y: K1 * point3.y * p3oz, z: point3.z };
 
-            ctx.moveTo(translateX + point1.x, translateY - point1.y - 100 + noise(xoff + 0.01, yoff) * 200);
+            drawPoints(point0, point1, point2, point3, xoff, yoff);
 
-            ctx.lineTo(translateX + point2.x, translateY - point2.y + -100 + noise(xoff, yoff - 0.01) * 200);
-            ctx.lineTo(translateX + point0.x, translateY - point0.y + -100 + noise(xoff, yoff) * 200);
-            ctx.lineTo(translateX + point1.x, translateY - point1.y + -100 + noise(xoff + 0.01, yoff) * 200);
             xoff += 0.03;
         }
         yoff += 0.05;
     }
     ctx.closePath();
     ctx.stroke();
-    // ctx.fill();
+    ctx.fill();
+}
 
+function drawPoints(p0, p1, p2, p3)
+{
+    p0 = { x: translateX + p0.x, y: translateY - p0.y };
+    p1 = { x: translateX + p1.x, y: translateY - p1.y };
+    p2 = { x: translateX + p2.x, y: translateY - p2.y };
+    p3 = { x: translateX + p3.x, y: translateY - p3.y };
+
+    if (p0.x > 0 && p0.x < canvas.width && p0.y > 0 && p0.y < canvas.height ||
+        p1.x > 0 && p1.x < canvas.width && p1.y > 0 && p1.y < canvas.height ||
+        p2.x > 0 && p2.x < canvas.width && p2.y > 0 && p2.y < canvas.height)
+    {
+        ctx.moveTo(p1.x, p1.y);
+
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+
+        // ctx.moveTo(p1.x + 2, p1.y);
+        // ctx.lineTo(p2.x + 2, p2.y);
+        // ctx.lineTo(p3.x + 2, p3.y);
+        // ctx.lineTo(p1.x + 2, p1.y);
+    }
 }
 
 function rotatePoint(point, theta)
@@ -96,17 +131,123 @@ function rotatePoint(point, theta)
 function clearFrame()
 {
     //set background
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 }
 
-function map(x, maxX)
+function map(x, a, b)
 {
-    return x / maxX;
+    return a + x * (b - a);
 }
 
-function updateAngle(e)
+document.addEventListener("wheel", async function (e)
 {
-    terrainAngle = e.value;
-    // console.log(e.value)
+    if (!frameRefresh)
+        return;
+
+    if (Math.abs(e.deltaY) > 0)
+        terrainAngle = clipVal(terrainAngle + 0.01 * (e.deltaY / Math.abs(e.deltaY)), 0.17, 0.8)
+    else if (Math.abs(e.deltaX) > 0)
+        translateX = clipVal(translateX - 10 * (e.deltaX / Math.abs(e.deltaX)), canvas.width * 0.2, canvas.width * 0.8)
+
+    return false;
+}, true);
+
+window.addEventListener("resize", function (e)
+{
+    initCanvas();
+    return false;
+}, true);
+
+
+let keysPressed = {};
+
+addEventListener('keydown', (event) =>
+{
+    keysPressed[event.code] = true;
+});
+
+addEventListener('keyup', (event) =>
+{
+    delete keysPressed[event.code];
+});
+
+let movingForward = false, movingSide = false;
+addEventListener('keydown', async (e) =>
+{
+
+    //Space Bar
+    if (keysPressed['Space'])
+    {
+        if (frameRefresh)
+        {
+            clearInterval(frameRefresh);
+            frameRefresh = undefined;
+            document.getElementById("background").classList.remove("moving")
+
+        } else 
+        {
+            document.getElementById("background").classList.add("moving")
+            frameRefresh = setInterval(drawTerrain, 50)
+        }
+    }
+
+    if (keysPressed['KeyW'])
+    {
+        if (!frameRefresh)
+        {
+            if (movingForward)
+                return
+            else movingForward = true;
+            flying += flyingDelta;
+            drawTerrain();
+            await new Promise(r => setTimeout(r, 2));
+            movingForward = false;
+        }
+    } else if (keysPressed['KeyS'])
+    {
+        if (!frameRefresh)
+        {
+            if (movingForward)
+                return
+            else movingForward = true;
+            flying -= flyingDelta;
+            drawTerrain();
+            await new Promise(r => setTimeout(r, 2));
+            movingForward = false;
+
+        }
+    }
+
+    if (keysPressed['KeyA'])
+    {
+        if (movingSide)
+            return
+        else movingSide = true;
+
+        horizontalOffset -= flyingDelta;
+        if (!frameRefresh)
+        {
+            drawTerrain();
+            await new Promise(r => setTimeout(r, 2));
+        }
+        movingSide = false;
+    } else if (keysPressed['KeyD'])
+    {
+        if (movingSide)
+            return
+        else movingSide = true;
+        horizontalOffset += flyingDelta;
+        if (!frameRefresh)
+        {
+            drawTerrain();
+            await new Promise(r => setTimeout(r, 2));
+        }
+        movingSide = false;
+    }
+});
+
+
+function clipVal(x, min, max)
+{
+    return (x > max) ? max : (x < min) ? min : x;
 }
