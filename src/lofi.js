@@ -3,19 +3,23 @@ let ctx = undefined;
 let frameRefresh = undefined;
 const PI = Math.PI;
 
-let width = 200;
+const reachWidth =100;
+const reachHeight = 70;
+
+let width = 150;
 let height = 70;
 let rows = 0, cols = 0;
 
-const K1 = 300;
-const K2 = 2;
+let K1 = 300;
+let K2 = -3;
 
-let flying = 0, flyingDelta = 0.03;
+let flying = 0, flyingDelta = 0.02;
 let horizontalOffset = 0;
 
-let terrainAngle = 0.4;
+let terrainAngle = 0;
 
 let translateX = 0, translateY = 0;
+let t_angle_sin = 0, t_angle_cos = 0;
 
 function initCanvas()
 {
@@ -34,9 +38,20 @@ function initCanvas()
     grad.addColorStop(1, "#301D7D");
     ctx.strokeStyle = grad;
 
+    terrainAngle = calculateStartAngle();
+}
 
+function startMovement(){
     if (!frameRefresh)
         frameRefresh = setInterval(drawTerrain, 50)
+}
+
+function stopMovement() {
+    if(frameRefresh){
+        clearInterval(frameRefresh);
+        frameRefresh = undefined;
+    }
+
 }
 
 function drawTerrain()
@@ -88,7 +103,7 @@ function drawTerrain()
     }
     ctx.closePath();
     ctx.stroke();
-    ctx.fill();
+    // ctx.fill();
 }
 
 function drawPoints(p0, p1, p2, p3)
@@ -117,13 +132,12 @@ function drawPoints(p0, p1, p2, p3)
 
 function rotatePoint(point, theta)
 {
-    theta *= -1;
-    let z = K2 + point.z * Math.cos(theta) - point.y * Math.sin(theta);
+    let z = K2 + point.z * t_angle_cos - point.y * t_angle_sin;
     if (z == 0)
         z += 0.01;
     return {
         x: point.x,
-        y: point.y * Math.cos(theta) + point.z * Math.sin(theta),
+        y: point.y * t_angle_cos + point.z * t_angle_sin,
         z: z
     }
 }
@@ -139,21 +153,9 @@ function map(x, a, b)
     return a + x * (b - a);
 }
 
-document.addEventListener("wheel", async function (e)
-{
-    if (!frameRefresh)
-        return;
-
-    if (Math.abs(e.deltaY) > 0)
-        terrainAngle = clipVal(terrainAngle + 0.01 * (e.deltaY / Math.abs(e.deltaY)), 0.17, 0.8)
-    else if (Math.abs(e.deltaX) > 0)
-        translateX = clipVal(translateX - 10 * (e.deltaX / Math.abs(e.deltaX)), canvas.width * 0.2, canvas.width * 0.8)
-
-    return false;
-}, true);
-
 window.addEventListener("resize", function (e)
 {
+    console.log("HI")
     initCanvas();
     return false;
 }, true);
@@ -174,7 +176,6 @@ addEventListener('keyup', (event) =>
 let movingForward = false, movingSide = false;
 addEventListener('keydown', async (e) =>
 {
-
     //Space Bar
     if (keysPressed['Space'])
     {
@@ -190,64 +191,31 @@ addEventListener('keydown', async (e) =>
             frameRefresh = setInterval(drawTerrain, 50)
         }
     }
-
-    if (keysPressed['KeyW'])
-    {
-        if (!frameRefresh)
-        {
-            if (movingForward)
-                return
-            else movingForward = true;
-            flying += flyingDelta;
-            drawTerrain();
-            await new Promise(r => setTimeout(r, 2));
-            movingForward = false;
-        }
-    } else if (keysPressed['KeyS'])
-    {
-        if (!frameRefresh)
-        {
-            if (movingForward)
-                return
-            else movingForward = true;
-            flying -= flyingDelta;
-            drawTerrain();
-            await new Promise(r => setTimeout(r, 2));
-            movingForward = false;
-
-        }
-    }
-
-    if (keysPressed['KeyA'])
-    {
-        if (movingSide)
-            return
-        else movingSide = true;
-
-        horizontalOffset -= flyingDelta;
-        if (!frameRefresh)
-        {
-            drawTerrain();
-            await new Promise(r => setTimeout(r, 2));
-        }
-        movingSide = false;
-    } else if (keysPressed['KeyD'])
-    {
-        if (movingSide)
-            return
-        else movingSide = true;
-        horizontalOffset += flyingDelta;
-        if (!frameRefresh)
-        {
-            drawTerrain();
-            await new Promise(r => setTimeout(r, 2));
-        }
-        movingSide = false;
-    }
 });
 
 
 function clipVal(x, min, max)
 {
+    // return x;
     return (x > max) ? max : (x < min) ? min : x;
+}
+
+function calculateStartAngle(){
+    //Idea here is to take 2 data points, the angle and window height. The angle is chosen by me
+    //to look good, So i find it with a large height, and smaller height. From there I can
+    //calculate the angle based on those proportions and the current screen height.
+
+    //Here height is x, angle is y
+    //For vertical phone: angle: 95 deg, height: 896(is fine with horizontal monitors)
+    //Horizontal Phone: angle: 48, height: 415
+    //Slope: (95-48)/(896-415) = 0.09771309771(should be negative)
+    //Finding B: 48+m*415 = B = 88.55
+
+    //Realistically, we need to clip the angle between 60-150
+    angle = 88.55+ window.innerHeight* -    0.09771309771; //angle in deg
+    angle = -1*clipVal(angle,35,150)*(PI/180); //Need angle to be negative to show in our case
+    t_angle_cos = Math.cos(angle);
+    t_angle_sin = Math.sin(angle);
+    return angle;
+
 }
