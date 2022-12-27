@@ -3,7 +3,7 @@ let ctx = undefined;
 let frameRefresh = undefined;
 const PI = Math.PI;
 
-const reachWidth =100;
+const reachWidth = 100;
 const reachHeight = 70;
 
 let width = 150;
@@ -41,13 +41,16 @@ function initCanvas()
     terrainAngle = calculateStartAngle();
 }
 
-function startMovement(){
+function startMovement()
+{
     if (!frameRefresh)
         frameRefresh = setInterval(drawTerrain, 50)
 }
 
-function stopMovement() {
-    if(frameRefresh){
+function stopMovement()
+{
+    if (frameRefresh)
+    {
         clearInterval(frameRefresh);
         frameRefresh = undefined;
     }
@@ -155,7 +158,6 @@ function map(x, a, b)
 
 window.addEventListener("resize", function (e)
 {
-    console.log("HI")
     initCanvas();
     return false;
 }, true);
@@ -200,7 +202,8 @@ function clipVal(x, min, max)
     return (x > max) ? max : (x < min) ? min : x;
 }
 
-function calculateStartAngle(){
+function calculateStartAngle()
+{
     //Idea here is to take 2 data points, the angle and window height. The angle is chosen by me
     //to look good, So i find it with a large height, and smaller height. From there I can
     //calculate the angle based on those proportions and the current screen height.
@@ -212,8 +215,8 @@ function calculateStartAngle(){
     //Finding B: 48+m*415 = B = 88.55
 
     //Realistically, we need to clip the angle between 60-150
-    angle = 88.55+ window.innerHeight* -    0.09771309771; //angle in deg
-    angle = -1*clipVal(angle,35,150)*(PI/180); //Need angle to be negative to show in our case
+    angle = 88.55 + window.innerHeight * -    0.09771309771; //angle in deg
+    angle = -1 * clipVal(angle, 35, 150) * (PI / 180); //Need angle to be negative to show in our case
     t_angle_cos = Math.cos(angle);
     t_angle_sin = Math.sin(angle);
     return angle;
