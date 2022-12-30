@@ -60,7 +60,7 @@ function stopMovement()
 function drawTerrain()
 {
     if (frameRefresh)
-        flying += 0.03;
+        flying += flyingDelta;
     clearFrame();
     // ctx.fillStyle = 'rgba(255,255,255,0.3)'
     ctx.fillStyle = 'rgba(0,0,0,0.7)'
